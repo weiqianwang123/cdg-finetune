@@ -1,4 +1,4 @@
-# abc_yam_v3_ft_hangmug_gt_diverse_style100 (cdg-finetune: the recipe of the pour/hang mug/sweep comparisons, stopped at 10000 steps; decay_steps 50000 as the runs it is compared with)
+# abc_yam_v3_ft_hangmug_gt1000 (cdg-finetune: the recipe of our fine-tune lines, 50k steps, saves every 5000)
 model:
   type: pi0
   action_horizon: 30
@@ -42,7 +42,7 @@ data:
   - abc_130k/part_05
   - abc_130k/part_06
   - abc_130k/part_07
-  - abc_sim_224/hang_mug_mug6_gt_diverse_style100
+  - abc_sim_224/hang_mug_mug6_gt1000
   sampling_weights:
     abc_sim_224/ball_tray_balancing: 0.017115014216823914
     abc_sim_224/conveyor_pick: 0.031742153838616685
@@ -69,9 +69,9 @@ data:
     abc_130k/part_05: 0.03178356847332471
     abc_130k/part_06: 0.0320351118951835
     abc_130k/part_07: 0.03138605484262808
-    abc_sim_224/hang_mug_mug6_gt_diverse_style100: 0.5
+    abc_sim_224/hang_mug_mug6_gt1000: 0.5
   nonidle_filter_paths:
-    abc_sim_224/hang_mug_mug6_gt_diverse_style100: cdg_run/keep/abc_sim_224__hang_mug_mug6_gt_diverse_style100.json
+    abc_sim_224/hang_mug_mug6_gt1000: cdg_run/keep/abc_sim_224__hang_mug_mug6_gt1000.json
   assets:
     asset_id: abc_yam
     assets_dir: cdg_run/assets
@@ -94,7 +94,7 @@ data:
         actions: action
         prompt: prompt
 batch_size: 128
-num_train_steps: 10000
-save_interval: 1000
-keep_period: 5000
+num_train_steps: 50000
+save_interval: 5000
+keep_period: 10000
 num_workers: 8
