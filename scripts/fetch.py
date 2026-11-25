@@ -30,8 +30,11 @@ MIX = [  # the base's training mix, half of every batch
 PARTS = [f"part_0{k}" for k in range(8)]
 SETS = {  # the fine-tune datasets, by domain
     "pour": ["pour_gt_diverse100", "pour_gt_diverse_style100"],
-    "hang_mug": ["hang_mug_mug6_gt_diverse100", "hang_mug_mug6_gt_diverse_style100"],
-    "sweep_only": ["sweep_only_gt_diverse100", "sweep_only_gt_diverse_style100"],
+    "hang_mug": [
+        "hang_mug_mug6_gt_diverse1000", "hang_mug_mug6_gt_diverse_style1000",
+        "hang_mug_mug6_gt1000", "hang_mug_mug6_gt_style1000",
+    ],
+    "sweep_only": ["sweep_only_gt_diverse150", "sweep_only_gt_diverse_style150"],
 }
 
 

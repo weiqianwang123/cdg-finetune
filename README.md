@@ -6,7 +6,7 @@
 > about 16:00 ET; `git pull` here and run `scripts/fetch.py` again then. This note disappears when
 > they land.
 
-Six fine-tunes of the same base policy (π0.5 post-trained on the dual-YAM arms in
+Eight fine-tunes of the same base policy (π0.5 post-trained on the dual-YAM arms in
 ABC-Sim), one per dataset, with one fixed recipe. Everything needed is public:
 
 | what | where |
@@ -34,11 +34,15 @@ compare against, which differ by domain:
 | `abc_yam_v3_ft_pour_gt_diverse_style100` | `pour_gt_diverse_style100` | 100 | **10,000** | 10000 |
 | `abc_yam_v3_ft_hangmug_gt_diverse1000` | `hang_mug_mug6_gt_diverse1000` | 1000 | 50,000 | 10000, 20000, 30000, 40000, 50000 |
 | `abc_yam_v3_ft_hangmug_gt_diverse_style1000` | `hang_mug_mug6_gt_diverse_style1000` | 1000 | 50,000 | the same |
+| `abc_yam_v3_ft_hangmug_gt1000` | `hang_mug_mug6_gt1000` | 1000 | 50,000 | the same |
+| `abc_yam_v3_ft_hangmug_gt_style1000` | `hang_mug_mug6_gt_style1000` | 1000 | 50,000 | the same |
 | `abc_yam_v3_ft_sweeponly_gt_diverse150` | `sweep_only_gt_diverse150` | 150 | 50,000 | 10000, 20000, 30000, 40000, 50000 |
 | `abc_yam_v3_ft_sweeponly_gt_diverse_style150` | `sweep_only_gt_diverse_style150` | 150 | 50,000 | the same |
 
 The `_style` runs' data comes from a program that was also held to a motion-style ruler;
-the others' from a program asked for diverse data alone. The pouring configs are written
+the `_diverse` ones' from a program asked for diverse data; `hangmug_gt1000` and
+`hangmug_gt_style1000` are the same setting without the diversity request (the control pair
+for hang mug). The pouring configs are written
 for 50,000 steps like the others but are stopped at 10,000 (the comparison point of that
 domain: pass `--num-train-steps 10000`, as the commands below do). The runs are
 independent: run them in any order, in parallel if the GPUs allow.
@@ -132,6 +136,8 @@ bash scripts/train.sh abc_yam_v3_ft_pour_gt_diverse100 --fsdp-devices 8 --num-tr
 bash scripts/train.sh abc_yam_v3_ft_pour_gt_diverse_style100 --fsdp-devices 8 --num-train-steps 10000
 bash scripts/train.sh abc_yam_v3_ft_hangmug_gt_diverse1000 --fsdp-devices 8
 bash scripts/train.sh abc_yam_v3_ft_hangmug_gt_diverse_style1000 --fsdp-devices 8
+bash scripts/train.sh abc_yam_v3_ft_hangmug_gt1000 --fsdp-devices 8
+bash scripts/train.sh abc_yam_v3_ft_hangmug_gt_style1000 --fsdp-devices 8
 bash scripts/train.sh abc_yam_v3_ft_sweeponly_gt_diverse150 --fsdp-devices 8
 bash scripts/train.sh abc_yam_v3_ft_sweeponly_gt_diverse_style150 --fsdp-devices 8
 ```
@@ -149,6 +155,11 @@ fork reads and runs its `scripts/train.py` from the fork's folder:
 - `--exp-name=RUN --checkpoint-base-dir=work/openpi/checkpoints --overwrite`, and
   `--no-wandb-enabled` unless `WANDB_API_KEY` is set (then `--wandb-enabled
   --project-name=cdg-finetune`).
+
+**Weights & Biases (please do this):** export `WANDB_API_KEY` with the key we send you
+separately (not in this repo) before every run, so that each run logs its loss to our project
+and we can follow it live: https://wandb.ai/qweiw-University%20of%20Michigan/cdg-finetune.
+The run's name on W&B is the `--exp-name` (the RUN above).
 
 Any further option is passed to `scripts/train.py` as is (tyro's command line: `--fsdp-devices 8`,
 `--num-train-steps 10000`, `--resume`...). Checkpoints go to
