@@ -35,41 +35,40 @@ this matches the runs we compare against, which were configured for 50k and comp
 Each dataset is 100 successful episodes of a coding agent's program run in ABC-Sim. The
 runs are independent: run them in any order, in parallel if the GPUs allow.
 
-## 1. Hardware: what to set per GPU
+## 1. Hardware: 8-GPU nodes
 
-The model is π0.5 (about 3.4B parameters). Full fine-tuning (no LoRA) at global batch 128
-needs, per device, roughly **94 GB / N + 3 GB** where N is the number of devices the model
-is sharded over (`--fsdp-devices N`; the optimizer state and the parameters shard N ways,
-and so does the batch). Measured anchors: on an 8-device TPU v6e (32 GB each) batch 256
-fit with N = 8; on a 4-device TPU v4 (31 GB each) batch 256 did **not** fit with N = 4
-(it needed 35 GB per device).
+The model is π0.5 (about 3.4B parameters), fine-tuned in full (no LoRA) at global batch 128.
+Per GPU it needs roughly **94 GB / N + 3 GB**, where N is the number of GPUs the model is
+sharded over (`--fsdp-devices N`: parameters and optimizer state shard N ways, and so does
+the batch; the GPUs beyond N run as further data-parallel groups). Measured anchors: on an
+8-device TPU v6e (32 GB each) batch 256 fit with N = 8; on a 4-device TPU v4 (31 GB each)
+batch 256 did not fit with N = 4 (35 GB per device needed).
 
-| GPUs available | settings | per-GPU memory (estimate) |
-|---|---|---|
-| 1 × H100 80 GB | **not enough** for batch 128 full fine-tuning; batch 64 fits but is not the recipe. Use two GPUs or a larger one. | — |
-| 1 × H200 141 GB | `--fsdp-devices 1`, batch 128 | ~95 GB |
-| 1 × B200 (180–192 GB) | `--fsdp-devices 1`, batch 128 | ~95 GB |
-| 2 × H100 / H200 / B200 | `--fsdp-devices 2`, batch 128 | ~50 GB |
-| 4 × H100 / H200 / B200 | `--fsdp-devices 4`, batch 128 | ~27 GB |
-| 8 × H100 / H200 / B200 | `--fsdp-devices 8`, batch 128 (or `--fsdp-devices 4` for two data-parallel groups: faster, if 4 fit) | ~15 GB |
+| node | one run on the node | two runs at once (4 GPUs each) | per-GPU memory |
+|---|---|---|---|
+| 8 × H100 80 GB | `--fsdp-devices 8` (safe) or `--fsdp-devices 4` (two data-parallel groups, faster) | `CUDA_VISIBLE_DEVICES=0,1,2,3 ... --fsdp-devices 4` and `4,5,6,7` | ~15 GB (N = 8), ~27 GB (N = 4) |
+| 8 × H200 141 GB | `--fsdp-devices 4` or `--fsdp-devices 2` (four groups) | the same, `--fsdp-devices 2` fits too | ~27 GB (N = 4), ~50 GB (N = 2) |
+| 8 × B200 | `--fsdp-devices 2` (four groups) | the same | ~50 GB (N = 2) |
+
+Smaller N is faster per step (less sharding traffic) as long as it fits; when in doubt start
+with `--fsdp-devices 8` and, if it runs, try a smaller N on the next run. The six runs are
+independent: with 8 GPUs a node can run two at once with 4 GPUs each.
 
 Rules:
 - Keep `batch_size: 128` as it is in every config. Do not change it, and do not use LoRA:
   the results are compared against runs with exactly this recipe.
-- `--fsdp-devices` must divide the number of GPUs JAX sees and must divide 128. Set
-  `CUDA_VISIBLE_DEVICES` to the GPUs the run may use.
-- Always export `XLA_PYTHON_CLIENT_MEM_FRACTION=0.9` (JAX otherwise preallocates less and
-  fails with a false out-of-memory).
-- If a run fails with `RESOURCE_EXHAUSTED` in the first step, double `--fsdp-devices`
-  (if more GPUs are available) and start again; the log's "Used X of Y hbm" line says by
-  how much it missed.
+- `--fsdp-devices` must divide the number of GPUs JAX sees (`CUDA_VISIBLE_DEVICES`) and must
+  divide 128.
+- `scripts/train.sh` exports `XLA_PYTHON_CLIENT_MEM_FRACTION=0.9` (JAX otherwise preallocates
+  less and fails with a false out-of-memory).
+- If a run fails with `RESOURCE_EXHAUSTED` in its first step, double `--fsdp-devices` and
+  start again; the log's "Used X of Y hbm" line says by how much it missed.
 - Throughput to expect: on 8 × H100 about 1–1.5 s per step, so 10,000 steps take 3–5 hours;
-  on fewer or slower GPUs proportionally longer. The first step takes several minutes
-  (compilation).
+  H200/B200 faster. The first step takes several minutes (compilation).
 - Blackwell (B200): the pinned `jax[cuda12]==0.5.3` may lack kernels for the newest GPUs. If
-  JAX does not see the GPUs or fails to compile, run on Hopper (H100/H200) instead, or try the
-  newest `jax[cuda12]` of the same minor version (`uv pip install -U "jax[cuda12]"` inside the
-  fork's environment) and report what was changed.
+  JAX does not see the GPUs or fails to compile, run on H100/H200 instead, or try the newest
+  `jax[cuda12]` of the same minor version (`uv pip install -U "jax[cuda12]"` inside the fork's
+  environment) and report what was changed.
 
 ## 2. Setup (once)
 
