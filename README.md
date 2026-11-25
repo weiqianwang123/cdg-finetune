@@ -152,14 +152,9 @@ fork reads and runs its `scripts/train.py` from the fork's folder:
   `../data/checkpoints/abc_yam_v3/99999/params`, relative to the fork's folder (the layout
   above; with `DATA=` elsewhere the script links `work/data` to it);
 - `XLA_PYTHON_CLIENT_MEM_FRACTION=0.9`;
-- `--exp-name=RUN --checkpoint-base-dir=work/openpi/checkpoints --overwrite`, and
-  `--no-wandb-enabled` unless `WANDB_API_KEY` is set (then `--wandb-enabled
-  --project-name=cdg-finetune`).
-
-**Weights & Biases (please do this):** export `WANDB_API_KEY` with the key we send you
-separately (not in this repo) before every run, so that each run logs its loss to our project
-and we can follow it live: https://wandb.ai/qweiw-University%20of%20Michigan/cdg-finetune.
-The run's name on W&B is the `--exp-name` (the RUN above).
+- `--exp-name=RUN --checkpoint-base-dir=work/openpi/checkpoints --overwrite
+  --no-wandb-enabled` (no Weights & Biases: the loss goes to the console; please keep the
+  console log of each run, e.g. `bash scripts/train.sh ... 2>&1 | tee RUN.log`).
 
 Any further option is passed to `scripts/train.py` as is (tyro's command line: `--fsdp-devices 8`,
 `--num-train-steps 10000`, `--resume`...). Checkpoints go to
@@ -173,7 +168,7 @@ Run the six in sequence or in parallel; nothing is shared between them but the d
 For every run, the checkpoints we compare (the table in section 0: step 10000 for pouring;
 10000, 20000, 30000, 40000 and 50000 for hang mug and sweep only), parameters only:
 `openpi/checkpoints/<config>/<RUN>/<step>/params/` (about 11.6 GB each), plus the console
-log (or the W&B link). Upload them to Hugging Face, one call per step:
+log. Upload them to Hugging Face, one call per step:
 
 ```bash
 # with a write token for the model repo (ask us for one, or use a repo of your own and tell us its name)

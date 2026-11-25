@@ -6,7 +6,7 @@
 #   CUDA_VISIBLE_DEVICES=0,1 bash scripts/train.sh abc_yam_v3_ft_pour_gt_diverse100 --fsdp-devices 2
 #   bash scripts/train.sh abc_yam_v3_ft_pour_gt_diverse100 --fsdp-devices 8 --resume   # after an interruption
 # RUN names both the config (configs/RUN.yaml) and the experiment (checkpoints/RUN/RUN/<step>/).
-# Logs go to Weights & Biases when WANDB_API_KEY is set, else nowhere but the console.
+# The loss is logged to the console (no Weights & Biases).
 set -euo pipefail
 HERE=$(cd "$(dirname "$0")/.." && pwd)
 RUN=${1:?the run's name (a config in $HERE/configs)}; shift
@@ -22,7 +22,7 @@ export OPENPI_DATA_MIRROR_ROOT=$DATA/mirror
 export XLA_PYTHON_CLIENT_MEM_FRACTION=${XLA_PYTHON_CLIENT_MEM_FRACTION:-0.9}
 # The configs name the base parameters as ../data/checkpoints/...: relative to this checkout.
 [ -d ../data/checkpoints/abc_yam_v3/99999/params ] || ln -sfn "$DATA" ../data
-if [ -n "${WANDB_API_KEY:-}" ]; then WANDB=(--wandb-enabled --project-name=cdg-finetune); else WANDB=(--no-wandb-enabled); fi
+WANDB=(--no-wandb-enabled)
 RESTART=--overwrite
 for a in "$@"; do [ "$a" = "--resume" ] && RESTART=; done
 echo "$(date '+%F %H:%M') $RUN on $(uv run python -c 'import jax; print(len(jax.devices()), "devices")' 2>/dev/null) $*"
