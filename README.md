@@ -1,13 +1,5 @@
 # cdg-finetune: π0.5 fine-tunes on CDG's ABC-Sim program data, on GPUs
 
-> **Status (2026-11-25, 13:30 ET):** the environment setup, the data fetch and four of the eight
-> runs are ready now: the two pouring runs and the two hang-mug runs `hangmug_gt1000` /
-> `hangmug_gt_style1000` (their configs and datasets are here and on the Hub). The other four
-> (`hangmug_gt_diverse1000`, `hangmug_gt_diverse_style1000`, `sweeponly_gt_diverse150`,
-> `sweeponly_gt_diverse_style150`) are still collecting: expect their configs and datasets by
-> about 16:00 ET; `git pull` here and run `scripts/fetch.py` again then (it only fetches what is
-> missing). This note disappears when they land.
-
 Eight fine-tunes of the same base policy (π0.5 post-trained on the dual-YAM arms in
 ABC-Sim), one per dataset, with one fixed recipe. Everything needed is public:
 
