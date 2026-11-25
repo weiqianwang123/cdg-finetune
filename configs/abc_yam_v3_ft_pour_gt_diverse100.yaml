@@ -1,4 +1,4 @@
-# abc_yam_v3_ft_pour_gt_diverse100 (cdg-finetune: the recipe of the pour/hang mug/sweep comparisons, stopped at 10000 steps; decay_steps 50000 as the runs it is compared with)
+# abc_yam_v3_ft_pour_gt_diverse100 (cdg-finetune: the recipe of our fine-tune lines, 50k steps, saves every 5000)
 model:
   type: pi0
   action_horizon: 30
@@ -94,7 +94,7 @@ data:
         actions: action
         prompt: prompt
 batch_size: 128
-num_train_steps: 10000
-save_interval: 1000
-keep_period: 5000
+num_train_steps: 50000
+save_interval: 5000
+keep_period: 10000
 num_workers: 8
