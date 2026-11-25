@@ -1,5 +1,11 @@
 # cdg-finetune: π0.5 fine-tunes on CDG's ABC-Sim program data, on GPUs
 
+> **Status (2026-11-25, 12:40 ET):** the environment setup, the data fetch and the two pouring runs
+> are ready now. The hang-mug and sweep-only configs (1000 and 150 episodes) are being
+> regenerated while their datasets finish collecting: expect them in this repo and on the Hub by
+> about 16:00 ET; `git pull` here and run `scripts/fetch.py` again then. This note disappears when
+> they land.
+
 Six fine-tunes of the same base policy (π0.5 post-trained on the dual-YAM arms in
 ABC-Sim), one per dataset, with one fixed recipe. Everything needed is public:
 
@@ -15,25 +21,27 @@ Every command is given in full. Nothing here needs Google Cloud or TPUs.
 
 ## 0. What a run is
 
-Each run fine-tunes the base for **10,000 steps at batch 128**, mixing its own dataset
-(50% of every batch) with the base's training mix (50%: 17 ABC-Sim tasks and 8 parts of
-ABC's 130k human episodes). Learning rate: cosine from 2.5e-5 after 1,000 warm-up steps,
-with a 50,000-step decay horizon (the run stops at 10,000, where the rate is still 2.3e-5:
-this matches the runs we compare against, which were configured for 50k and compared at
-10k). Absolute joint actions, action horizon 30, images at 224. A checkpoint is saved every
-1,000 steps; **the one at step 10000 is the result**.
+Each run fine-tunes the base at **batch 128**, mixing its own dataset (50% of every batch)
+with the base's training mix (50%: 17 ABC-Sim tasks and 8 parts of ABC's 130k human
+episodes). Learning rate: cosine from 2.5e-5 after 1,000 warm-up steps, decaying over
+50,000 steps to 2.5e-6. Absolute joint actions, action horizon 30, images at 224. A
+checkpoint is saved every 5,000 steps. The dataset sizes and the steps follow the runs we
+compare against, which differ by domain:
 
-| run (`--exp-name`, also the config name) | dataset (`mirror/abc_sim_224/<name>`) | domain | data |
-|---|---|---|---|
-| `abc_yam_v3_ft_pour_gt_diverse100` | `pour_gt_diverse100` | pouring | program asked for diverse data |
-| `abc_yam_v3_ft_pour_gt_diverse_style100` | `pour_gt_diverse_style100` | pouring | program asked for diverse data, style-aligned |
-| `abc_yam_v3_ft_hangmug_gt_diverse100` | `hang_mug_mug6_gt_diverse100` | hang mug | program asked for diverse data |
-| `abc_yam_v3_ft_hangmug_gt_diverse_style100` | `hang_mug_mug6_gt_diverse_style100` | hang mug | program asked for diverse data, style-aligned |
-| `abc_yam_v3_ft_sweeponly_gt_diverse100` | `sweep_only_gt_diverse100` | sweep only | program asked for diverse data |
-| `abc_yam_v3_ft_sweeponly_gt_diverse_style100` | `sweep_only_gt_diverse_style100` | sweep only | program asked for diverse data, style-aligned |
+| run (`--exp-name`, also the config name) | dataset (`mirror/abc_sim_224/<name>`) | episodes | steps | the checkpoints we compare |
+|---|---|---|---|---|
+| `abc_yam_v3_ft_pour_gt_diverse100` | `pour_gt_diverse100` | 100 | **10,000** (`--num-train-steps 10000`) | 10000 |
+| `abc_yam_v3_ft_pour_gt_diverse_style100` | `pour_gt_diverse_style100` | 100 | **10,000** | 10000 |
+| `abc_yam_v3_ft_hangmug_gt_diverse1000` | `hang_mug_mug6_gt_diverse1000` | 1000 | 50,000 | 10000, 20000, 30000, 40000, 50000 |
+| `abc_yam_v3_ft_hangmug_gt_diverse_style1000` | `hang_mug_mug6_gt_diverse_style1000` | 1000 | 50,000 | the same |
+| `abc_yam_v3_ft_sweeponly_gt_diverse150` | `sweep_only_gt_diverse150` | 150 | 50,000 | 10000, 20000, 30000, 40000, 50000 |
+| `abc_yam_v3_ft_sweeponly_gt_diverse_style150` | `sweep_only_gt_diverse_style150` | 150 | 50,000 | the same |
 
-Each dataset is 100 successful episodes of a coding agent's program run in ABC-Sim. The
-runs are independent: run them in any order, in parallel if the GPUs allow.
+The `_style` runs' data comes from a program that was also held to a motion-style ruler;
+the others' from a program asked for diverse data alone. The pouring configs are written
+for 50,000 steps like the others but are stopped at 10,000 (the comparison point of that
+domain: pass `--num-train-steps 10000`, as the commands below do). The runs are
+independent: run them in any order, in parallel if the GPUs allow.
 
 ## 1. Hardware: 8-GPU nodes
 
@@ -63,8 +71,8 @@ Rules:
   less and fails with a false out-of-memory).
 - If a run fails with `RESOURCE_EXHAUSTED` in its first step, double `--fsdp-devices` and
   start again; the log's "Used X of Y hbm" line says by how much it missed.
-- Throughput to expect: on 8 × H100 about 1–1.5 s per step, so 10,000 steps take 3–5 hours;
-  H200/B200 faster. The first step takes several minutes (compilation).
+- Throughput to expect: on 8 × H100 about 1–1.5 s per step, so 10,000 steps take 3–5 hours
+  and 50,000 about a day; H200/B200 faster. The first step takes several minutes (compilation).
 - Blackwell (B200): the pinned `jax[cuda12]==0.5.3` may lack kernels for the newest GPUs. If
   JAX does not see the GPUs or fails to compile, run on H100/H200 instead, or try the newest
   `jax[cuda12]` of the same minor version (`uv pip install -U "jax[cuda12]"` inside the fork's
@@ -120,7 +128,12 @@ lists what is still missing.
 
 ```bash
 cd work/cdg-finetune
-bash scripts/train.sh abc_yam_v3_ft_pour_gt_diverse100 --fsdp-devices 8
+bash scripts/train.sh abc_yam_v3_ft_pour_gt_diverse100 --fsdp-devices 8 --num-train-steps 10000
+bash scripts/train.sh abc_yam_v3_ft_pour_gt_diverse_style100 --fsdp-devices 8 --num-train-steps 10000
+bash scripts/train.sh abc_yam_v3_ft_hangmug_gt_diverse1000 --fsdp-devices 8
+bash scripts/train.sh abc_yam_v3_ft_hangmug_gt_diverse_style1000 --fsdp-devices 8
+bash scripts/train.sh abc_yam_v3_ft_sweeponly_gt_diverse150 --fsdp-devices 8
+bash scripts/train.sh abc_yam_v3_ft_sweeponly_gt_diverse_style150 --fsdp-devices 8
 ```
 
 `scripts/train.sh RUN [openpi train.py options]` copies `cdg_run/` into the fork (the
@@ -138,17 +151,18 @@ fork reads and runs its `scripts/train.py` from the fork's folder:
   --project-name=cdg-finetune`).
 
 Any further option is passed to `scripts/train.py` as is (tyro's command line: `--fsdp-devices 8`,
-`--num-train-steps 20`, `--resume`...). Checkpoints go to
-`work/openpi/checkpoints/<RUN>/<RUN>/<step>/` (every 1,000 steps; `params/` is what matters).
+`--num-train-steps 10000`, `--resume`...). Checkpoints go to
+`work/openpi/checkpoints/<RUN>/<RUN>/<step>/` (every 5,000 steps; `params/` is what matters).
 A run interrupted is resumed by adding `--resume` to the same command.
 
 Run the six in sequence or in parallel; nothing is shared between them but the data.
 
 ## 5. What to send back
 
-For every run, the checkpoint at step 10000, parameters only:
-`openpi/checkpoints/<config>/<RUN>/10000/params/` (about 11.6 GB each), plus the console log
-(or the W&B link). Upload them to Hugging Face:
+For every run, the checkpoints we compare (the table in section 0: step 10000 for pouring;
+10000, 20000, 30000, 40000 and 50000 for hang mug and sweep only), parameters only:
+`openpi/checkpoints/<config>/<RUN>/<step>/params/` (about 11.6 GB each), plus the console
+log (or the W&B link). Upload them to Hugging Face, one call per step:
 
 ```bash
 # with a write token for the model repo (ask us for one, or use a repo of your own and tell us its name)
@@ -157,9 +171,8 @@ HF_TOKEN=... uv run --with huggingface_hub python scripts/push_checkpoint.py \
     --run abc_yam_v3_ft_pour_gt_diverse100 --step 10000 --repo qweiw/cdg-checkpoints
 ```
 
-This puts `params/` under `<RUN>/10000/` in the repo, in the layout our evaluation reads.
-The checkpoints at 5000 are welcome too (`--step 5000`) but not required. We run the
-evaluation in ABC-Sim on our side.
+This puts `params/` under `<RUN>/<step>/` in the repo, in the layout our evaluation reads.
+We run the evaluation in ABC-Sim on our side.
 
 ## 6. Checks before a long run
 
