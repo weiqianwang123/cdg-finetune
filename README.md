@@ -157,6 +157,16 @@ A run interrupted is resumed by adding `--resume` to the same command.
 
 Run the eight in sequence or in parallel; nothing is shared between them but the data.
 
+### Notes from the first GPU runs (Bosch, 4 × B300 per run, 2026-11-26)
+
+- jax 0.5.3 cannot compile its Triton GEMM kernels for B300: set
+  `XLA_FLAGS=--xla_gpu_enable_triton_gemm=false`.
+- A run on 4 of a node's 8 GPUs failed in its first collective ("Cuda failure 401") until
+  `NCCL_NVLS_ENABLE=0` was set.
+- The PaliGemma tokenizer is fetched from `gs://` and ignores HTTP proxies: download it in
+  advance behind a proxy.
+- `--fsdp-devices 2` with batch 128 ran at about 1.75 s per step on 4 B300s.
+
 ## 5. What to send back
 
 For every run, the checkpoints we compare (the table in section 0: step 10000 for pouring;
