@@ -9,7 +9,7 @@
 # The loss is logged to the console (no Weights & Biases).
 set -euo pipefail
 HERE=$(cd "$(dirname "$0")/.." && pwd)
-RUN=${1:?the run's name (a config in $HERE/configs)}; shift
+RUN=${1:?"the run name (a config in $HERE/configs)"}; shift
 OPENPI=${OPENPI:-$HERE/../openpi}
 DATA=${DATA:-$HERE/../data}
 [ -f "$HERE/configs/$RUN.yaml" ] || { echo "no config $HERE/configs/$RUN.yaml" >&2; exit 2; }
