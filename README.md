@@ -181,7 +181,10 @@ We run the evaluation in ABC-Sim on our side.
   few minutes; a failure here is a setup problem, not a training one. Delete
   `work/openpi/checkpoints/abc_yam_v3_ft_pour_gt_diverse100` afterwards (the real run
   overwrites it anyway).
-- A healthy run's loss starts around 1.5 and is below 0.05 within the first 2,000 steps.
+- A healthy run's loss is small from the first step: about 0.02–0.03 over the first 100
+  steps and 0.005–0.01 after 1,000–2,000 steps (our TPU runs of the same recipe). The base
+  was never trained on these tasks; the loss is the flow-matching error on normalized joint
+  actions of a policy already post-trained on this simulator and robot, so it starts low.
 - The data mix is read by streaming: the first steps may be slow while the shuffle buffer
   (8,000 samples) fills.
 
